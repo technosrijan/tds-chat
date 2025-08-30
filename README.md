@@ -1,5 +1,7 @@
 # AI Chatbot with Code Execution & Web Search
 
+## 🚀 **Live Demo:** [https://tds-chat.onrender.com](https://tds-chat.onrender.com)
+
 A JavaScript-based chatbot interface implementing secure code execution, web search capabilities, and advanced markdown rendering with comprehensive error handling and multi-provider LLM integration.
 
 ## Core Architecture
