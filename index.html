@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chatbot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <style>
+        body {
+            background: #000000;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .status-indicator {
+            width: 6px;
+            height: 6px;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .message-content {
+            background: transparent;
+            color: #ffffff;
+            border: none;
+            box-shadow: none;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: messageSlideIn 0.4s ease forwards;
+        }
+
+        .message-bot .message-content {
+            background: transparent;
+            color: #d1d5db;
+            border: none;
+            box-shadow: none;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: messageSlideIn 0.4s ease forwards;
+        }
+
+        @keyframes messageSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user .message-avatar {
+            order: 2;
+            background: #3b82f6;
+            color: #ffffff;
+        }
+
+        .message-bot .message-avatar {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .typing-indicator {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #6b7280;
+            animation: typingPulse 1.6s infinite ease-in-out;
+            border-radius: 0;
+            margin: 0 2px;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes typingPulse {
+            0%, 100% { 
+                transform: scale(0.6); 
+                opacity: 0.3; 
+                background: #6b7280;
+            }
+            50% { 
+                transform: scale(1.2); 
+                opacity: 1; 
+                background: #10b981;
+            }
+        }
+
+        /* Modern form styling */
+        .form-control {
+            background-color: #1e1e1e !important;
+            border: 1px solid #2a2a2a !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease !important;
+            border-radius: 0 !important;
+        }
+
+        .form-control:focus {
+            background-color: #262626 !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        .form-control::placeholder {
+            color: #6b7280 !important;
+        }
+
+        .btn {
+            background-color: #3b82f6 !important;
+            border: 1px solid #3b82f6 !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease !important;
+            border-radius: 0 !important;
+        }
+
+        .btn:hover {
+            background-color: #2563eb !important;
+            border-color: #2563eb !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .btn:active {
+            transform: translateY(0) !important;
+        }
+
+        .btn-outline-secondary {
+            background-color: transparent !important;
+            border: 1px solid #6b7280 !important;
+            color: #6b7280 !important;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6b7280 !important;
+            border-color: #6b7280 !important;
+            color: #ffffff !important;
+        }
+
+        .form-select {
+            background-color: #1e1e1e !important;
+            border: 1px solid #2a2a2a !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease !important;
+            border-radius: 0 !important;
+        }
+
+        .form-select:focus {
+            background-color: #262626 !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        }
+
+        .form-select option {
+            background-color: #1e1e1e !important;
+            color: #ffffff !important;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.ready {
+            background: #10b981;
+        }
+
+        .status-dot.generating {
+            background: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        .status-dot.waiting {
+            background: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        /* Custom Modal Styling */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+            backdrop-filter: blur(4px);
+        }
+
+        .custom-modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 0;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .modal-title {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #6b7280;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: auto;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: #d1d5db;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 12px;
+            border-radius: 0;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background-color: #374151 !important;
+            border: 1px solid #374151 !important;
+            color: #ffffff !important;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563 !important;
+            border-color: #4b5563 !important;
+        }
+
+        /* Custom scrollbar */
+        .overflow-auto::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .overflow-auto::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        .overflow-auto::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 0;
+        }
+
+        .overflow-auto::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+
+        /* Markdown content styling */
+        .message-content h1, .message-content h2, .message-content h3, 
+        .message-content h4, .message-content h5, .message-content h6 {
+            color: #ffffff;
+            margin: 16px 0 8px 0;
+            font-weight: 600;
+        }
+
+        .message-content h1 { font-size: 1.5em; }
+        .message-content h2 { font-size: 1.3em; }
+        .message-content h3 { font-size: 1.1em; }
+
+        .message-content p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .message-content ul, .message-content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message-content li {
+            margin: 4px 0;
+        }
+
+        .message-content blockquote {
+            border-left: 3px solid #3b82f6;
+            margin: 12px 0;
+            padding: 8px 16px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #d1d5db;
+        }
+
+        .message-content code {
+            background: #1e1e1e;
+            color: #10b981;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message-content pre {
+            background: #1a1a1a !important;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .message-content pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+            border-radius: 0;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .message-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .message-content th, .message-content td {
+            border: 1px solid #333;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .message-content th {
+            background: #2a2a2a;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .message-content td {
+            color: #d1d5db;
+        }
+
+        .message-content a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .message-content hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 16px 0;
+        }
+
+        .message-content strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .message-content em {
+            color: #d1d5db;
+            font-style: italic;
+        }
+
+        /* Copy button for code blocks */
+        .code-block-wrapper {
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .code-block-wrapper:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background: #4b5563;
+            color: #ffffff;
+        }
+
+        /* KaTeX math styling */
+        .katex {
+            color: #ffffff !important;
+        }
+
+        .katex-display {
+            margin: 16px 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid h-100 p-0" style="background: #0a0a0a;">
+        <div class="row h-100 g-0">
+            <div class="col-12 col-md-8 col-lg-6 mx-auto h-100 d-flex flex-column" style="background: #0a0a0a;">
+                <!-- Header -->
+                <div class="border-bottom border-secondary border-opacity-25 p-4 text-center position-relative">
+                    <div class="status-indicator position-absolute top-0 end-0 mt-4 me-4"></div>
+                    <h1 class="h5 text-light mb-0 fw-light">Chat</h1>
+                </div>
+                
+                <!-- Messages Area -->
+                <div class="flex-grow-1 overflow-auto" id="chatMessages">
+                </div>
+                
+                
+                <!-- Input Area -->
+                <div class="border-top border-secondary border-opacity-25 p-4 rounded-0">
+                    <div class="d-flex gap-2 mb-3 align-items-center">
+                        <select class="form-select" id="modelSelector" style="max-width: 200px;">
+                            <option value="">Select Model</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" id="configButton" title="Configure LLM Provider">
+                            ⚙️
+                        </button>
+                        <div class="ms-auto d-flex align-items-center gap-2">
+                            <div class="status-dot" id="statusDot"></div>
+                            <span class="text-light" id="statusText" style="font-size: 14px;">Ready</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="chatInput" 
+                            placeholder="Type your message here..."
+                            autocomplete="off"
+                        >
+                        <button class="btn" id="sendButton">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom LLM Configuration Modal -->
+    <div class="custom-modal" id="llmConfigModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure LLM Provider</h5>
+                <button type="button" class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert-info">
+                    Configure your LLM provider to enable AI responses. You can use AI Pipe for unified access or enter your own API key.
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="providerSelect">Provider</label>
+                    <select class="form-select" id="providerSelect">
+                        <option value="https://aipipe.org/openai/v1">OpenAI AI Proxy (Default)</option>
+                        <option value="other">Other Provider</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="otherProviderGroup" style="display: none;">
+                    <label class="form-label" for="otherProviderSelect">Select Provider</label>
+                    <select class="form-select" id="otherProviderSelect">
+                        <option value="https://aipipe.org/openrouter/v1">AI Pipe - OpenRouter</option>
+                        <option value="https://api.openai.com/v1">OpenAI Direct</option>
+                        <option value="https://openrouter.ai/api/v1">OpenRouter Direct</option>
+                        <option value="https://api.anthropic.com/v1">Anthropic Direct</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="customUrlGroup" style="display: none;">
+                    <label class="form-label" for="customBaseUrl">Custom Base URL</label>
+                    <input type="text" class="form-control" id="customBaseUrl" placeholder="https://api.example.com/v1">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="apiKeyInput">API Key</label>
+                    <input type="password" class="form-control" id="apiKeyInput" placeholder="Enter your API key">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="googleApiKeyInput">Google Search API Key (Optional)</label>
+                    <input type="password" class="form-control" id="googleApiKeyInput" placeholder="Enter your Google API key for web search">
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">Required for web search function calls</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="searchEngineIdInput">Google Search Engine ID (Optional)</label>
+                    <input type="text" class="form-control" id="searchEngineIdInput" placeholder="Enter your Custom Search Engine ID">
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">Get from Google Custom Search Engine</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="modelSelect">Available Models</label>
+                    <select class="form-select" id="modelSelect" multiple size="6">
+                        <!-- Models will be populated dynamically -->
+                    </select>
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">Select models to use (hold Ctrl/Cmd to select multiple)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="customModelInput">Add Custom Model</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" id="customModelInput" placeholder="e.g., openai/gpt-4-turbo-preview">
+                        <button type="button" class="btn btn-outline-secondary" id="addModelButton">Add</button>
+                    </div>
+                    <small style="color: #6b7280; font-size: 12px; margin-top: 4px; display: block;">Add custom models not in the default list</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
+                <button type="button" class="btn" id="modalSave">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { bootstrapAlert } from "https://cdn.jsdelivr.net/npm/bootstrap-alert@1";
+        window.bootstrapAlert = bootstrapAlert;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script type="module" src="chatbot.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
